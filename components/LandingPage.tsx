@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { trackEvent } from '@/components/MetaPixel'
 
 const EVENT_DATE = new Date('2026-06-09T14:30:00+07:00').getTime()
 const IMG_BASE = 'https://haiphong-solopreneur.lovable.app/assets/'
@@ -90,6 +91,10 @@ export default function LandingPage() {
 
   const handlePickClick = useCallback((pick: string) => {
     if (pick === '100' || pick === '500') selectPkg(pick as PkgVal)
+    // Signal pricing intent to Pixel
+    const value = pick === '500' ? 500000 : 100000
+    const contentName = pick === '500' ? 'Combo Diễn đàn + Gala Dinner' : 'Sign In Buổi Chiều'
+    trackEvent('InitiateCheckout', { currency: 'VND', value, content_name: contentName })
     document.getElementById('dang-ky')?.scrollIntoView({ behavior: 'smooth' })
   }, [selectPkg])
 
@@ -107,10 +112,19 @@ export default function LandingPage() {
     setFormState('loading')
     try {
       const pkgLabel = pkg === '100' ? 'Sign In – 100.000đ' : 'Combo + Gala – 500.000đ'
+      const pkgValue = pkg === '500' ? 500000 : 100000
+      // Unique ID shared between browser Pixel and server CAPI for deduplication
+      const eventId = `reg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+
+      // Browser pixel fires immediately (may be blocked by adblockers)
+      trackEvent('Lead', { currency: 'VND', value: pkgValue }, eventId)
+      trackEvent('CompleteRegistration', { currency: 'VND', value: pkgValue, status: true }, eventId)
+
+      // Server saves to Supabase + fires CAPI with same eventId
       const res = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, pkg: pkgLabel }),
+        body: JSON.stringify({ ...form, pkg: pkgLabel, eventId }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Lỗi máy chủ.')

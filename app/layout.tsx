@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Archivo, Be_Vietnam_Pro } from 'next/font/google'
+import MetaPixel from '@/components/MetaPixel'
 import './globals.css'
 
 const archivo = Archivo({
@@ -26,10 +27,15 @@ export const metadata: Metadata = {
   },
 }
 
+const pixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="vi">
-      <body className={`${archivo.variable} ${beVietnamPro.variable}`}>{children}</body>
+      <body className={`${archivo.variable} ${beVietnamPro.variable}`}>
+        {children}
+        {pixelId && <MetaPixel pixelId={pixelId} />}
+      </body>
     </html>
   )
 }
